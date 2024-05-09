@@ -19,6 +19,17 @@ Publish migrations:
 php artisan vendor:publish --tag=stripe-migrations
 ```
 
+Add the service provider to config/app.php
+
+```php
+'providers' => [
+    (...)
+    
+    Dominservice\CLaravelConfig\ServiceProvider::class,
+],
+
+```
+
 ## Usage
 
 From __SHELL__

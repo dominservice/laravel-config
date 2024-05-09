@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Dominservice\CLaravelConfig\Console\Commands;
 
 use Dominservice\CLaravelConfig\Config;
 use Illuminate\Console\Command;
