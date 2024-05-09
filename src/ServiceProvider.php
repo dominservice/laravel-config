@@ -3,6 +3,7 @@
 namespace Dominservice\CLaravelConfig;
 
 
+use App\Console\Commands\Optimize;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;
@@ -24,6 +25,12 @@ class ServiceProvider extends BaseServiceProvider
             __DIR__.'/../database/migrations/create_settings_table.php.stub' => $this->getMigrationFileName($filesystem, 'create_settings_table'),
 
         ], 'stripe-migrations');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                Optimize::class,
+            ]);
+        }
     }
 
     /**
