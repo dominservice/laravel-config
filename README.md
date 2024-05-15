@@ -13,22 +13,24 @@ Laravel Config Optimize for laravel 10+ on PHP 8.1+
 composer require dominservice/laravel-config
 ```
 
-Publish migrations:
-
-```shell
-php artisan vendor:publish --tag=stripe-migrations
-```
-
 Add the service provider to config/app.php
 
 ```php
 'providers' => [
-    (...)
+    // ...
     
     Dominservice\CLaravelConfig\ServiceProvider::class,
 ],
 
 ```
+
+
+You should publish the migration and the config/optimize.php config file with:
+
+```shell
+php artisan vendor:publish --provider="Dominservice\CLaravelConfig\ServiceProvider"
+```
+
 
 ## Usage
 
@@ -43,7 +45,7 @@ From __PHP__
 ```php
 use Dominservice\CLaravelConfig\Config;
 
-(...)
+// ...
 
 (new Config())->buildCache();
 ```

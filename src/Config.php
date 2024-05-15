@@ -76,6 +76,19 @@ class Config
         }
     }
 
+    private function getCustomConfigFiles(): void
+    {
+        if ($custom = config('optimize.custom_files_config')) {
+            foreach ($custom as $key => $path) {
+                if (file_exists(base_path($path))) {
+                    $this->default[$key] = isset($this->default[$key])
+                        ? ArrayHelper::arrayMergeDeep($this->default[$key], include(base_path($path)))
+                        : include(base_path($path));
+                }
+            }
+        }
+    }
+
     /**
      * @return mixed
      */
@@ -111,6 +124,7 @@ class Config
     {
         $this->initConfigDB();
         $this->getDefault();
+        $this->getCustomConfigFiles();
 
         $config = ArrayHelper::arrayMergeDeep($this->default, $this->config);
 
@@ -134,7 +148,7 @@ class Config
     /**
      * @return bool
      */
-    public function isBildedCache(): bool
+    public function isBuildedCache(): bool
     {
         return app()->configurationIsCached();
     }

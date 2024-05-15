@@ -20,17 +20,34 @@ class ServiceProvider extends BaseServiceProvider
     */
     public function boot(Router $router, Filesystem $filesystem)
     {
+        $this->publishes([
+            __DIR__ . '/../config/optimize.php' => config_path('optimize.php'),
+        ], 'optimize-config');
+
         /** Migrations */
         $this->publishes([
             __DIR__.'/../database/migrations/create_settings_table.php.stub' => $this->getMigrationFileName($filesystem, 'create_settings_table'),
 
-        ], 'config-migrations');
+        ], 'optimize-migrations');
 
         if ($this->app->runningInConsole()) {
             $this->commands([
                 Optimize::class,
             ]);
         }
+    }
+
+    /**
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/optimize.php',
+            'cms'
+        );
     }
 
     /**
