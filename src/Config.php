@@ -80,10 +80,20 @@ class Config
     {
         if ($custom = config('optimize.custom_files_config')) {
             foreach ($custom as $key => $path) {
-                if (file_exists(base_path($path))) {
-                    $this->default[$key] = isset($this->default[$key])
-                        ? ArrayHelper::arrayMergeDeep($this->default[$key], include(base_path($path)))
-                        : include(base_path($path));
+                if (is_array($path)) {
+                    foreach ($path as $item) {
+                        if (file_exists(base_path($item))) {
+                            $this->default[$key] = isset($this->default[$key])
+                                ? ArrayHelper::arrayMergeDeep($this->default[$key], include(base_path($item)))
+                                : include(base_path($item));
+                        }
+                    }
+                } else {
+                    if (file_exists(base_path($path))) {
+                        $this->default[$key] = isset($this->default[$key])
+                            ? ArrayHelper::arrayMergeDeep($this->default[$key], include(base_path($path)))
+                            : include(base_path($path));
+                    }
                 }
             }
         }
