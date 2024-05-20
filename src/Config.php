@@ -117,13 +117,15 @@ class Config
     private function initConfigDB(): void
     {
         if (!$this->initializedDB) {
-            foreach (Setting::orderBy('key', 'asc')->get() as $v) {
-                $type = ArrayHelper::valueTypeOf($v->value);
-                $v->value = ArrayHelper::valueCastTo($v->value, $type);
-                data_set($this->config, $v->key, $v->value);
-            }
+            try {
+                foreach (Setting::orderBy('key', 'asc')->get() as $v) {
+                    $type = ArrayHelper::valueTypeOf($v->value);
+                    $v->value = ArrayHelper::valueCastTo($v->value, $type);
+                    data_set($this->config, $v->key, $v->value);
+                }
 
-            $this->initializedDB = true;
+                $this->initializedDB = true;
+            } catch (\Exception $e) {}
         }
     }
 
