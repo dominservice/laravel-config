@@ -11,8 +11,8 @@ use Throwable;
 
 class Config
 {
-    private array $default;
-    private array $config = [];
+    private $default;
+    private $config = [];
     private bool $initializedDB = false;
 
     /**
@@ -46,7 +46,7 @@ class Config
      * @param mixed $value
      * @return Config
      */
-    private function setToDB(?string $param = null, $value = null): Config
+    private function setToDB_(?string $param = null, $value = null): Config
     {
         if (!is_null($param)) {
             $typeVal = ArrayHelper::valueTypeOf($value);
@@ -60,6 +60,29 @@ class Config
                 Setting::where('key', $param)->delete();
                 \Illuminate\Support\Arr::forget($this->config, $param);
             }
+        }
+
+        return $this;
+    }
+
+    private function setToDB(?string $param = null, $value = null): Config
+    {
+        if (!is_null($param)) {
+            $config = &$this->config; // Przechowaj referencję do $this->config
+
+            \DB::transaction(function () use ($param, $value, &$config) {
+                $typeVal = ArrayHelper::valueTypeOf($value);
+                $castValue = ArrayHelper::valueCastTo($value, $typeVal, false);
+                $defaultCastValue = ArrayHelper::valueCastTo(data_get($this->default, $param), $typeVal, false);
+
+                if ($defaultCastValue !== $castValue) {
+                    \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
+                    data_set($config, $param, $value);
+                } else {
+                    Setting::where('key', $param)->delete();
+                    \Illuminate\Support\Arr::forget($config, $param);
+                }
+            });
         }
 
         return $this;
