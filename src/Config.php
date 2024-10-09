@@ -1,10 +1,9 @@
 <?php
 
-namespace Dominservice\CLaravelConfig;
+namespace Dominservice\LaravelConfig;
 
-
-use Dominservice\CLaravelConfig\Helpers\ArrayHelper;
-use Dominservice\CLaravelConfig\Models\Setting;
+use Dominservice\LaravelConfig\Helpers\ArrayHelper;
+use Dominservice\LaravelConfig\Models\Setting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernelContract;
 use Illuminate\Filesystem\Filesystem;
 use LogicException;
@@ -12,30 +11,30 @@ use Throwable;
 
 class Config
 {
-    private $default;
-    private $config = [];
-    private $initializedDB = false;
+    private array $default;
+    private array $config = [];
+    private bool $initializedDB = false;
 
     /**
-     * @param $param
-     * @param $value
-     * @param $bildCache
+     * @param array|string|null $param
+     * @param mixed $value
+     * @param bool $buildCache
      * @return $this
      */
-    public function set($param = null, $value = null, $bildCache = false): Config
+    public function set($param = null, $value = null, bool $buildCache = false): Config
     {
         $this->initConfigDB();
         $this->getDefault();
 
         if (is_array($param)) {
             foreach ($param as $k => $v) {
-                $this->setToDB($v[0] , $v[1]);
+                $this->setToDB($v[0], $v[1]);
             }
         } else {
-            $this->setToDB($param , $value);
+            $this->setToDB($param, $value);
         }
 
-        if ($bildCache) {
+        if ($buildCache) {
             $this->buildCache();
         }
 
@@ -43,18 +42,18 @@ class Config
     }
 
     /**
-     * @param $param
-     * @param $value
+     * @param string|null $param
+     * @param mixed $value
      * @return Config
      */
-    private function setToDB($param = null, $value = null): Config
+    private function setToDB(?string $param = null, $value = null): Config
     {
         if (!is_null($param)) {
             $typeVal = ArrayHelper::valueTypeOf($value);
             $castValue = ArrayHelper::valueCastTo($value, $typeVal, false);
-            $DefaultCastValue = ArrayHelper::valueCastTo(data_get($this->default, $param), $typeVal, false);
+            $defaultCastValue = ArrayHelper::valueCastTo(data_get($this->default, $param), $typeVal, false);
 
-            if ($DefaultCastValue !== $castValue) {
+            if ($defaultCastValue !== $castValue) {
                 \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
                 data_set($this->config, $param, $value);
             } else {
@@ -76,6 +75,9 @@ class Config
         }
     }
 
+    /**
+     * @return void
+     */
     private function getCustomConfigFiles(): void
     {
         if ($custom = config('optimize.custom_files_config')) {
@@ -100,9 +102,9 @@ class Config
     }
 
     /**
-     * @return mixed
+     * @return array
      */
-    protected function getFreshConfiguration(): mixed
+    protected function getFreshConfiguration(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
@@ -125,7 +127,9 @@ class Config
                 }
 
                 $this->initializedDB = true;
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                \Log::error($e->getMessage());
+            }
         }
     }
 
@@ -146,7 +150,7 @@ class Config
         \Illuminate\Support\Facades\Artisan::call('config:clear');
 
         $filesystem->put(
-            $configPath, '<?php return '.var_export($config, true).';'.PHP_EOL
+            $configPath, '<?php return ' . var_export($config, true) . ';' . PHP_EOL
         );
         try {
             require $configPath;

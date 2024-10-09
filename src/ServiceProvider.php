@@ -1,9 +1,9 @@
 <?php
 
-namespace Dominservice\CLaravelConfig;
+namespace Dominservice\LaravelConfig;
 
 
-use Dominservice\CLaravelConfig\Console\Commands\Optimize;
+use Dominservice\LaravelConfig\Console\Commands\Optimize;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;

@@ -19,7 +19,7 @@ Add the service provider to config/app.php
 'providers' => [
     // ...
     
-    Dominservice\CLaravelConfig\ServiceProvider::class,
+    Dominservice\LaravelConfig\ServiceProvider::class,
 ],
 
 ```
@@ -28,7 +28,7 @@ Add the service provider to config/app.php
 You should publish the migration and the config/optimize.php config file with:
 
 ```shell
-php artisan vendor:publish --provider="Dominservice\CLaravelConfig\ServiceProvider"
+php artisan vendor:publish --provider="Dominservice\LaravelConfig\ServiceProvider"
 ```
 
 
@@ -43,7 +43,7 @@ php artisan dso:optimize-config
 From __PHP__
 
 ```php
-use Dominservice\CLaravelConfig\Config;
+use Dominservice\LaravelConfig\Config;
 
 // ...
 

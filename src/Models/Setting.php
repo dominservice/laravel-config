@@ -1,6 +1,6 @@
 <?php
 
-namespace Dominservice\CLaravelConfig\Models;
+namespace Dominservice\LaravelConfig\Models;
 
 
 use Illuminate\Database\Eloquent\Model;

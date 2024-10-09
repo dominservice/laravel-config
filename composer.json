@@ -18,13 +18,13 @@
   },
   "autoload": {
     "psr-4": {
-      "Dominservice\\CLaravelConfig\\": "src/"
+      "Dominservice\\LaravelConfig\\": "src/"
     }
   },
   "extra": {
     "laravel": {
       "providers": [
-        "Dominservice\\CLaravelConfig\\ServiceProvider"
+        "Dominservice\\LaravelConfig\\ServiceProvider"
       ]
     }
   },

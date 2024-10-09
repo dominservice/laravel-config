@@ -1,6 +1,6 @@
 <?php
 
-namespace Dominservice\CLaravelConfig\Helpers;
+namespace Dominservice\LaravelConfig\Helpers;
 
 class ArrayHelper
 {

@@ -1,8 +1,8 @@
 <?php
 
-namespace Dominservice\CLaravelConfig\Console\Commands;
+namespace Dominservice\LaravelConfig\Console\Commands;
 
-use Dominservice\CLaravelConfig\Config;
+use Dominservice\LaravelConfig\Config;
 use Illuminate\Console\Command;
 
 class Optimize extends Command
