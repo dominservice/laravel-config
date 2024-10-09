@@ -41,30 +41,6 @@ class Config
         return $this;
     }
 
-    /**
-     * @param string|null $param
-     * @param mixed $value
-     * @return Config
-     */
-    private function setToDB_(?string $param = null, $value = null): Config
-    {
-        if (!is_null($param)) {
-            $typeVal = ArrayHelper::valueTypeOf($value);
-            $castValue = ArrayHelper::valueCastTo($value, $typeVal, false);
-            $defaultCastValue = ArrayHelper::valueCastTo(data_get($this->default, $param), $typeVal, false);
-
-            if ($defaultCastValue !== $castValue) {
-                \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
-                data_set($this->config, $param, $value);
-            } else {
-                Setting::where('key', $param)->delete();
-                \Illuminate\Support\Arr::forget($this->config, $param);
-            }
-        }
-
-        return $this;
-    }
-
     private function setToDB(?string $param = null, $value = null): Config
     {
         if (!is_null($param)) {
@@ -127,11 +103,37 @@ class Config
     /**
      * @return array
      */
-    protected function getFreshConfiguration(): array
+    protected function getFreshConfiguration__(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
         $app->make(ConsoleKernelContract::class)->bootstrap();
+
+        return $app['config']->all();
+    }
+
+    protected function getFreshConfiguration(): array
+    {
+        $app = require app()->bootstrapPath('app.php');
+        $app->useStoragePath(app()->storagePath());
+
+        // Wyłącz cache konfiguracji
+        $app['config']->set('cache', false);
+
+        // Ręczne ładowanie plików konfiguracyjnych
+        $configPath = $app->configPath();
+        $files = new \Illuminate\Filesystem\Filesystem;
+        $config = [];
+
+        foreach ($files->allFiles($configPath) as $file) {
+            $filename = $file->getFilenameWithoutExtension();
+            $config[$filename] = require $file->getPathname();
+        }
+
+        // Nadpisz bieżącą konfigurację
+        foreach ($config as $key => $value) {
+            $app['config']->set($key, $value);
+        }
 
         return $app['config']->all();
     }
