@@ -103,7 +103,7 @@ class Config
     /**
      * @return array
      */
-    protected function getFreshConfiguration__(): array
+    protected function getFreshConfiguration_(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
@@ -114,14 +114,11 @@ class Config
 
     protected function getFreshConfiguration(): array
     {
-        $app = require app()->bootstrapPath('app.php');
-        $app->useStoragePath(app()->storagePath());
-
         // Wyłącz cache konfiguracji
-        $app['config']->set('cache', false);
+        config(['cache' => false]);
 
         // Ręczne ładowanie plików konfiguracyjnych
-        $configPath = $app->configPath();
+        $configPath = config_path();
         $files = new \Illuminate\Filesystem\Filesystem;
         $config = [];
 
@@ -132,10 +129,10 @@ class Config
 
         // Nadpisz bieżącą konfigurację
         foreach ($config as $key => $value) {
-            $app['config']->set($key, $value);
+            config([$key => $value]);
         }
 
-        return $app['config']->all();
+        return config()->all();
     }
 
     /**
