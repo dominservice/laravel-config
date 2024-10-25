@@ -13,6 +13,7 @@ use Throwable;
 class Config
 {
     private $default;
+    private $defaultForSetConfig;
     private $config = [];
     private bool $initializedDB = false;
 
@@ -25,7 +26,8 @@ class Config
     public function set($param = null, $value = null, bool $buildCache = false): Config
     {
         $this->initConfigDB();
-        $this->getDefault();
+//        $this->getDefault();
+        $this->getDefaultForSetConfig();
 
         if (is_array($param)) {
             foreach ($param as $k => $v) {
@@ -50,7 +52,7 @@ class Config
             \DB::transaction(function () use ($param, $value, &$config) {
                 $typeVal = ArrayHelper::valueTypeOf($value);
                 $castValue = ArrayHelper::valueCastTo($value, $typeVal, false);
-                $defaultCastValue = ArrayHelper::valueCastTo(data_get($this->default, $param), $typeVal, false);
+                $defaultCastValue = ArrayHelper::valueCastTo(data_get($this->defaultForSetConfig, $param), $typeVal, false);
 
                 if ($defaultCastValue !== $castValue) {
                     \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
@@ -72,6 +74,16 @@ class Config
     {
         if (!$this->default) {
             $this->default = $this->getFreshConfiguration();
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function getDefaultForSetConfig(): void
+    {
+        if (!$this->defaultForSetConfig) {
+            $this->defaultForSetConfig = $this->getFreshConfigurationForSet();
         }
     }
 
@@ -104,7 +116,7 @@ class Config
     /**
      * @return array
      */
-    protected function getFreshConfiguration_(): array
+    protected function getFreshConfiguration(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
@@ -113,7 +125,7 @@ class Config
         return $app['config']->all();
     }
 
-    protected function getFreshConfiguration__(): array
+    protected function getFreshConfigurationForSet(): array
     {
         // Wyłącz cache konfiguracji
         config(['cache' => false]);
@@ -136,39 +148,45 @@ class Config
         return config()->all();
     }
 
-    protected function getFreshConfiguration(): array
-    {
-        $app = require app()->bootstrapPath('app.php');
-        $app->useStoragePath(app()->storagePath());
-        $app->make(ConsoleKernelContract::class)->bootstrap();
-
-        $config = $app['config']->all();
-
-        $packageManifest = $app->make(PackageManifest::class);
-        $packages = $packageManifest->manifest;
-
-        $filesystem = new Filesystem;
-
-        foreach ($packages as $package) {
-            if (isset($package['providers'])) {
-                foreach ($package['providers'] as $provider) {
-                    $reflection = new \ReflectionClass($provider);
-                    $packagePath = dirname($reflection->getFileName(), 2); // Zakładamy, że katalog pakietu jest dwa poziomy wyżej
-
-                    $configPath = $packagePath . '/config';
-                    if ($filesystem->isDirectory($configPath)) {
-                        foreach ($filesystem->allFiles($configPath) as $file) {
-                            $filename = $file->getFilenameWithoutExtension();
-                            $config[$filename] = require $file->getPathname();
-                        }
-                    }
-                }
-            }
-        }
-
-        return $config;
-    }
-
+//    protected function getFreshConfiguration___(): array
+//    {
+//        $filesystem = new Filesystem;
+//        $config = [];
+//
+//        // Ręczne ładowanie plików konfiguracyjnych z katalogu config
+//        $configPath = config_path();
+//        foreach ($filesystem->allFiles($configPath) as $file) {
+//            $filename = $file->getFilenameWithoutExtension();
+//            $config[$filename] = require $file->getPathname();
+//        }
+//
+//        // Ręczne ładowanie plików konfiguracyjnych z pakietów
+//        $packageManifest = app(PackageManifest::class);
+//        $packages = $packageManifest->manifest;
+//
+//        foreach ($packages as $package) {
+//            if (isset($package['providers'])) {
+//                foreach ($package['providers'] as $provider) {
+//                    $reflection = new \ReflectionClass($provider);
+//                    $packagePath = dirname($reflection->getFileName(), 2); // Zakładamy, że katalog pakietu jest dwa poziomy wyżej
+//
+//                    $configPath = $packagePath . '/config';
+//                    if ($filesystem->isDirectory($configPath)) {
+//                        foreach ($filesystem->allFiles($configPath) as $file) {
+//                            $filename = $file->getFilenameWithoutExtension();
+//                            if (isset($config[$filename])) {
+//                                $config[$filename] = array_merge($config[$filename], require $file->getPathname());
+//                            } else {
+//                                $config[$filename] = require $file->getPathname();
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        return $config;
+//    }
 
     /**
      * @return void
