@@ -103,7 +103,7 @@ class Config
     /**
      * @return array
      */
-    protected function getFreshConfiguration_(): array
+    protected function getFreshConfiguration(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
@@ -112,7 +112,7 @@ class Config
         return $app['config']->all();
     }
 
-    protected function getFreshConfiguration(): array
+    protected function getFreshConfiguration_(): array
     {
         // Wyłącz cache konfiguracji
         config(['cache' => false]);
