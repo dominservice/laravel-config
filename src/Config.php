@@ -6,6 +6,7 @@ use Dominservice\LaravelConfig\Helpers\ArrayHelper;
 use Dominservice\LaravelConfig\Models\Setting;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernelContract;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Foundation\PackageManifest;
 use LogicException;
 use Throwable;
 
@@ -103,7 +104,7 @@ class Config
     /**
      * @return array
      */
-    protected function getFreshConfiguration(): array
+    protected function getFreshConfiguration_(): array
     {
         $app = require app()->bootstrapPath('app.php');
         $app->useStoragePath(app()->storagePath());
@@ -112,7 +113,7 @@ class Config
         return $app['config']->all();
     }
 
-    protected function getFreshConfiguration_(): array
+    protected function getFreshConfiguration__(): array
     {
         // Wyłącz cache konfiguracji
         config(['cache' => false]);
@@ -134,6 +135,40 @@ class Config
 
         return config()->all();
     }
+
+    protected function getFreshConfiguration(): array
+    {
+        $app = require app()->bootstrapPath('app.php');
+        $app->useStoragePath(app()->storagePath());
+        $app->make(ConsoleKernelContract::class)->bootstrap();
+
+        $config = $app['config']->all();
+
+        $packageManifest = $app->make(PackageManifest::class);
+        $packages = $packageManifest->manifest;
+
+        $filesystem = new Filesystem;
+
+        foreach ($packages as $package) {
+            if (isset($package['providers'])) {
+                foreach ($package['providers'] as $provider) {
+                    $reflection = new \ReflectionClass($provider);
+                    $packagePath = dirname($reflection->getFileName(), 2); // Zakładamy, że katalog pakietu jest dwa poziomy wyżej
+
+                    $configPath = $packagePath . '/config';
+                    if ($filesystem->isDirectory($configPath)) {
+                        foreach ($filesystem->allFiles($configPath) as $file) {
+                            $filename = $file->getFilenameWithoutExtension();
+                            $config[$filename] = require $file->getPathname();
+                        }
+                    }
+                }
+            }
+        }
+
+        return $config;
+    }
+
 
     /**
      * @return void
