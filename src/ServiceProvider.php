@@ -6,6 +6,7 @@ namespace Dominservice\LaravelConfig;
 use Dominservice\LaravelConfig\Console\Commands\Optimize;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
 
@@ -35,6 +36,22 @@ class ServiceProvider extends BaseServiceProvider
                 Optimize::class,
             ]);
         }
+
+        Arr::macro('recursiveMerge', function (array $array1, array $array2) {
+            foreach ($array2 as $key => $value) {
+                if (Arr::exists($array1, $key)) {
+                    if (is_array($array1[$key]) && is_array($value)) {
+                        $array1[$key] = Arr::recursiveMerge($array1[$key], $value);
+                    } else {
+                        $array1[$key] = $value;
+                    }
+                } else {
+                    $array1[$key] = $value;
+                }
+            }
+
+            return $array1;
+        });
     }
 
     /**
