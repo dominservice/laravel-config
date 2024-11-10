@@ -62,42 +62,4 @@ class ArrayHelper
                 return (string)$value;
         }
     }
-
-    /**
-     * @param $arrays
-     * @return array
-     */
-    private static function arrayMergeDeepArray($arrays): array
-    {
-        $result = array();
-        foreach ($arrays as $array) {
-            foreach ($array as $key => $value) {
-                // Renumber integer keys as array_merge_recursive() does. Note that PHP
-                // automatically converts array keys that are integer strings (e.g., '1')
-                // to integers.
-                if (is_integer($key)) {
-                    $result[] = $value;
-                }
-                elseif (isset($result[$key]) && is_array($result[$key]) && is_array($value)) {
-                    $result[$key] = self::arrayMergeDeepArray(array(
-                        $result[$key],
-                        $value,
-                    ));
-                }
-                else {
-                    $result[$key] = $value;
-                }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @param ...$args
-     * @return array
-     */
-    public static function arrayMergeDeep(...$args): array
-    {
-        return self::arrayMergeDeepArray($args);
-    }
 }
