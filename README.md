@@ -50,7 +50,7 @@ use Dominservice\LaravelConfig\Config;
 (new Config())->buildCache();
 ```
 
-Or set provider to your aplication
+Or set __Middleware__ to your __application__
 ```php
 Dominservice\LaravelConfig\Http\Middleware\Optimize::class
 ```
