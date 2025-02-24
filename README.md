@@ -52,5 +52,5 @@ use Dominservice\LaravelConfig\Config;
 
 Or set provider to your aplication
 ```php
-Dominservice\LaravelConfig\Http\Middleware\Optimize
+Dominservice\LaravelConfig\Http\Middleware\Optimize::class
 ```
