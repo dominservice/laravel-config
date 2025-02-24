@@ -49,3 +49,8 @@ use Dominservice\LaravelConfig\Config;
 
 (new Config())->buildCache();
 ```
+
+Or set provider to your aplication
+```php
+Dominservice\LaravelConfig\Http\Middleware\Optimize
+```
