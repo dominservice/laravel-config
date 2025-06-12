@@ -15,10 +15,10 @@ class ServiceProvider extends BaseServiceProvider
     private int $lpMigration = 0;
 
     /**
-    * Bootstrap the application services.
-    *
-    * @return void
-    */
+     * Bootstrap the application services.
+     *
+     * @return void
+     */
     public function boot(Router $router, Filesystem $filesystem)
     {
         $this->publishes([
@@ -100,26 +100,57 @@ class ServiceProvider extends BaseServiceProvider
 
     protected function generateEnvPhpArrayFile(): void
     {
-        if (!file_exists(base_path('optimize_config.php')) && file_exists(base_path('.env'))) {
-            $lines = file(base_path('.env'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            $envArray = [];
+        $envPath = base_path('.env');
+        $outputPath = base_path('optimize_config.php');
+
+        if (!file_exists($outputPath) && file_exists($envPath)) {
+            $lines = file($envPath, FILE_IGNORE_NEW_LINES);
+            $output = "<?php\n\nreturn [\n";
 
             foreach ($lines as $line) {
-                if (str_starts_with(trim($line), '#')) {
+                $trimmed = trim($line);
+
+                // Pusta linia
+                if ($trimmed === '') {
+                    $output .= "\n";
                     continue;
                 }
 
-                if (str_contains($line, '=')) {
-                    [$key, $value] = explode('=', $line, 2);
-                    $value = trim($value);
-                    $value = trim($value, '"\'');
-                    $envArray[trim($key)] = $value;
+                // Zakomentowana linia z przypisaniem
+                if (preg_match('/^\s*#\s*([\w.]+)\s*=\s*(.*)$/', $line, $matches)) {
+                    $key = $matches[1];
+                    $value = trim($matches[2]);
+                    $value = trim($value, '\'"'); // usuń nadmiarowe cudzysłowy
+                    $quote = str_contains($value, '${') ? '"' : "'";
+                    $output .= "    // '{$key}' => {$quote}{$value}{$quote},\n";
+                    continue;
                 }
+
+                // Zwykły komentarz
+                if (preg_match('/^\s*#(.*)/', $line, $matches)) {
+                    $comment = trim($matches[1]);
+                    $output .= "    // {$comment}\n";
+                    continue;
+                }
+
+                // Normalna linia KEY=VALUE
+                if (preg_match('/^\s*([\w.]+)\s*=\s*(.*)$/', $line, $matches)) {
+                    $key = $matches[1];
+                    $value = trim($matches[2]);
+                    $value = trim($value, '\'"'); // usuń otaczające " lub '
+
+                    $quote = str_contains($value, '${') ? '"' : "'";
+//                    $output .= "    '{$key}' => {$quote}{$value}{$quote},\n";
+                    $output .= "    '{$key}' => '{$value}',\n";
+                    continue;
+                }
+
+                // Niezidentyfikowana linia – jako komentarz awaryjny
+                $output .= "    // {$line}\n";
             }
 
-
-            $content = "<?php\n\nreturn " . var_export($envArray, true) . ";\n";
-            file_put_contents(base_path('optimize_config.php'), $content);
+            $output .= "];\n";
+            file_put_contents($outputPath, $output);
         }
     }
 }
