@@ -151,6 +151,10 @@ class ServiceProvider extends BaseServiceProvider
 
             $output .= "];\n";
             file_put_contents($outputPath, $output);
+
+            if (!file_exists($outputPath)) {
+                unlink($envPath);
+            }
         }
     }
 }
