@@ -31,7 +31,12 @@ class ServiceProvider extends BaseServiceProvider
 
         ], 'optimize-migrations');
 
+
         if ($this->app->runningInConsole()) {
+            if ($this->isVendorPublishing()) {
+                $this->generateEnvPhpArrayFile();
+            }
+
             $this->commands([
                 Optimize::class,
             ]);
@@ -84,5 +89,37 @@ class ServiceProvider extends BaseServiceProvider
                 return $filesystem->glob($path.'*'.$name.'.php');
             })->push($this->app->databasePath()."/migrations/{$timestamp}_{$name}.php")
             ->first();
+    }
+
+    protected function isVendorPublishing(): bool
+    {
+        $argv = $_SERVER['argv'] ?? [];
+
+        return in_array('vendor:publish', $argv);
+    }
+
+    protected function generateEnvPhpArrayFile(): void
+    {
+        if (!file_exists(base_path('optimize_config.php')) && file_exists(base_path('.env'))) {
+            $lines = file(base_path('.env'), FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            $envArray = [];
+
+            foreach ($lines as $line) {
+                if (str_starts_with(trim($line), '#')) {
+                    continue;
+                }
+
+                if (str_contains($line, '=')) {
+                    [$key, $value] = explode('=', $line, 2);
+                    $value = trim($value);
+                    $value = trim($value, '"\'');
+                    $envArray[trim($key)] = $value;
+                }
+            }
+
+
+            $content = "<?php\n\nreturn " . var_export($envArray, true) . ";\n";
+            file_put_contents(base_path('optimize_config.php'), $content);
+        }
     }
 }
