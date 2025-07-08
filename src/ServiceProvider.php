@@ -141,7 +141,7 @@ class ServiceProvider extends BaseServiceProvider
 
                     $quote = str_contains($value, '${') ? '"' : "'";
 //                    $output .= "    '{$key}' => {$quote}{$value}{$quote},\n";
-                    $output .= "    '{$key}' => '{$value}',\n";
+                    $output .= "    '{$key}' => ".var_export($value, true).",\n";
                     continue;
                 }
 
@@ -152,6 +152,7 @@ class ServiceProvider extends BaseServiceProvider
             $output .= "];\n";
 
             if (file_put_contents($outputPath, $output) !== false) {
+                @copy($envPath, $envPath.'.backup');
                 @unlink($envPath);
             }
         }

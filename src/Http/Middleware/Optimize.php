@@ -11,7 +11,14 @@ class Optimize
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!app()->configurationIsCached() && !app()->runningInConsole()) {
+        if (!app()->configurationIsCached()
+            && !app()->runningInConsole()
+            && !app()->runningUnitTests()
+            && !$request->header('X-Livewire')
+            && !$request->expectsJson()
+            && !str_starts_with($request->path(), 'livewire')
+            && $request->isMethod('GET')
+        ) {
             (new Config())->buildCache();
 
             if (app()->isProduction()) {
