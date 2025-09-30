@@ -29,7 +29,13 @@ class Config
 
         if (is_array($param)) {
             foreach ($param as $k => $v) {
-                $this->setToDB($v[0], $v[1]);
+                if (is_int($k) && is_array($v) && array_key_exists(0, $v)) {
+                    // format: [ [key, value], ... ]
+                    $this->setToDB($v[0], $v[1]);
+                } else {
+                    // format: [ 'config.key' => 'value', ... ]
+                    $this->setToDB($k, $v);
+                }
             }
         } else {
             $this->setToDB($param, $value);
@@ -47,20 +53,21 @@ class Config
         if (!is_null($param)) {
             $configDefault = $this->default;
             $config = &$this->config;
+            $defaultRaw = data_get($configDefault, $param);
+            $defaultType = $defaultRaw !== null
+                ? ArrayHelper::valueTypeOf($defaultRaw)
+                : ArrayHelper::valueTypeOf($value);
 
-            \DB::transaction(function () use ($param, $value, $configDefault, &$config) {
-                $typeVal = ArrayHelper::valueTypeOf($value);
-                $castValue = ArrayHelper::valueCastTo($value, $typeVal, false);
-                $defaultCastValue = ArrayHelper::valueCastTo(data_get($configDefault, $param), $typeVal, false);
+            $castValue = ArrayHelper::valueCastTo($value, $defaultType, false);
+            $defaultCastValue = ArrayHelper::valueCastTo($defaultRaw, $defaultType, false);
 
-                if ($defaultCastValue !== $castValue) {
-                    \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
-                    data_set($config, $param, $value);
-                } else {
-                    Setting::where('key', $param)->delete();
-                    Arr::forget($config, $param);
-                }
-            });
+            if ($defaultCastValue !== $castValue) {
+                \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
+                data_set($config, $param, $value);
+            } else {
+                Setting::where('key', $param)->delete();
+                Arr::forget($config, $param);
+            }
         }
 
         return $this;
@@ -166,6 +173,10 @@ class Config
     {
         if (!$this->initializedDB || $force) {
             try {
+                if ($force) {
+                    $this->config = [];
+                }
+
                 foreach (Setting::orderBy('key', 'asc')->get() as $v) {
                     $type = ArrayHelper::valueTypeOf($v->value);
                     $v->value = ArrayHelper::valueCastTo($v->value, $type);
@@ -196,7 +207,10 @@ class Config
         );
 
         try {
-            require $configPath;
+            if ($filesystem->exists($configPath)) {
+                app('config')->set($config);
+            }
+
         } catch (Throwable $e) {
             $filesystem->delete($configPath);
 

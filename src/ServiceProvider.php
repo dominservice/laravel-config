@@ -68,7 +68,7 @@ class ServiceProvider extends BaseServiceProvider
     {
         $this->mergeConfigFrom(
             __DIR__.'/../config/optimize.php',
-            'cms'
+            'optimize'
         );
     }
 
