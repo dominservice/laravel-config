@@ -75,3 +75,15 @@ config/app.php
 ```
 
 To get rid of the __.env__ file, you need to add the __optimize_config.php__ file in the main project directory, where you need to enter the entire configuration from the __.env__ file, but in the form of an __array__
+
+---
+
+## Support
+### Support this project (Ko‑fi)
+If this package saves you time, consider buying me a coffee: https://ko-fi.com/dominservice — thank you!
+
+---
+
+## License
+
+MIT © Dominservice
