@@ -5,7 +5,18 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/dominservice/laravel-config.svg?style=flat-square)](https://packagist.org/packages/dominservice/laravel-config)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 
-Laravel Config Optimize for laravel 10+ on PHP 8.1+
+Merge default config with dynamic DB settings, include custom config files, and cache the result.
+Laravel 10+ on PHP 8.1+.
+
+## Features
+
+- DB-backed config overrides without changing your config file structure.
+- Config cache builder that merges defaults + custom files + DB settings.
+- Custom config file paths via `config/optimize.php` (module-like layouts).
+- `optimize_config()` helper for `.env` replacement and `${VAR}` interpolation.
+- Auto-generate `optimize_config.php` from `.env` on `vendor:publish`.
+- CLI command and middleware for on-demand config caching.
+- Route cache integration (command always, middleware in production).
 
 ## Installation
 
@@ -13,77 +24,129 @@ Laravel Config Optimize for laravel 10+ on PHP 8.1+
 composer require dominservice/laravel-config
 ```
 
-Add the service provider to config/app.php
+Laravel package discovery is enabled. Manual registration is only needed if you disabled discovery:
 
 ```php
 'providers' => [
     // ...
-    
     Dominservice\LaravelConfig\ServiceProvider::class,
 ],
-
 ```
 
-
-You should publish the migration and the config/optimize.php config file with:
+Publish assets (config + migration):
 
 ```shell
-php artisan vendor:publish --provider="Dominservice\LaravelConfig\ServiceProvider"
+php artisan vendor:publish --provider="Dominservice\\LaravelConfig\\ServiceProvider" --tag=optimize-config
+php artisan vendor:publish --provider="Dominservice\\LaravelConfig\\ServiceProvider" --tag=optimize-migrations
 ```
 
+Run migrations:
+
+```shell
+php artisan migrate
+```
 
 ## Usage
 
-From __SHELL__
+From shell:
 
 ```shell
 php artisan dso:optimize-config
 ```
 
-From __PHP__
+From PHP:
 
 ```php
 use Dominservice\LaravelConfig\Config;
 
-// ...
-
 (new Config())->buildCache();
 ```
 
-Or set __Middleware__ to your __application__
-```php
-Dominservice\LaravelConfig\Http\Middleware\Optimize::class
-```
+### Database-backed config values
 
-## Issues related to using .env
-
-* Global scope of $_ENV: Variables in $_ENV are global for a given PHP process. If the server configuration (e.g., PHP-FPM) does not properly isolate individual applications, it is possible for one project to see variables set by another.
-
-* Lack of process isolation: In some shared hosting configurations, process pools may be shared among different applications, which increases the risk of variable mixing.
-
-### Solution
-
-Implement our __optimize_config()__ function instead of __env()__ in all project configuration files.
-
-Example:
+The `settings` table stores only the values that differ from defaults. Types are auto-cast based on the
+default config value. If a value equals the default, the DB record is removed.
 
 ```php
-config/app.php
-...
-     'env' => optimize_config('APP_ENV', 'production'),
-...
+use Dominservice\LaravelConfig\Config;
+
+(new Config())->set('app.name', 'My App', true);
+
+(new Config())->set([
+    'app.debug' => false,
+    'app.timezone' => 'UTC',
+], true);
+
+(new Config())->set([
+    ['app.locale', 'en'],
+    ['app.faker_locale', 'en_US'],
+], true);
 ```
 
-To get rid of the __.env__ file, you need to add the __optimize_config.php__ file in the main project directory, where you need to enter the entire configuration from the __.env__ file, but in the form of an __array__
+### Middleware (build cache on first request)
+
+```php
+// app/Http/Kernel.php
+protected $middlewareGroups = [
+    'web' => [
+        // ...
+        Dominservice\LaravelConfig\Http\Middleware\Optimize::class,
+    ],
+];
+```
+
+The middleware runs only for GET requests, skips JSON and Livewire requests, and redirects once after
+building the cache. In production it also runs `route:cache`.
+
+## Custom config files
+
+Use `config/optimize.php` to merge non-standard config files (for module systems, etc).
+Each key becomes the config namespace; values can be a string path or an array of paths.
+
+```php
+// config/optimize.php
+return [
+    'custom_files_config' => [
+        'module' => 'modules/module/config/module.php',
+        'payments' => [
+            'modules/payments/config/gateways.php',
+            'modules/payments/config/rules.php',
+        ],
+    ],
+];
+```
+
+The package merges these arrays recursively using `Arr::recursiveMerge`.
+
+## optimize_config helper (replace env())
+
+`optimize_config()` reads from `optimize_config.php` in the project root and falls back to `Env::get`.
+It supports `${VAR}` interpolation inside values.
+
+Example in `config/app.php`:
+
+```php
+'env' => optimize_config('APP_ENV', 'production'),
+```
+
+### Auto-generate optimize_config.php
+
+When you run `vendor:publish`, the service provider will:
+
+- Create `optimize_config.php` if it does not exist and `.env` exists.
+- Copy `.env` to `.env.backup`.
+- Remove the original `.env`.
+
+Review this behavior before running `vendor:publish` in production.
 
 ---
 
 ## Support
-### Support this project (Ko‑fi)
-If this package saves you time, consider buying me a coffee: https://ko-fi.com/dominservice — thank you!
+### Support this project (Ko-fi)
+If this package saves you time, consider buying me a coffee: https://ko-fi.com/dominservice - thank you!
 
 ---
 
 ## License
 
-MIT © Dominservice
+MIT (c) Dominservice
