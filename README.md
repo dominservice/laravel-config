@@ -6,7 +6,7 @@
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
 
 Merge default config with dynamic DB settings, include custom config files, and cache the result.
-Laravel 10+ on PHP 8.1+.
+Laravel 10-13 on PHP 8.1+.
 
 ## Features
 
@@ -23,6 +23,13 @@ Laravel 10+ on PHP 8.1+.
 ```shell
 composer require dominservice/laravel-config
 ```
+
+Current compatibility targets:
+
+- Laravel 10 on PHP 8.1+
+- Laravel 11 on PHP 8.2+
+- Laravel 12 on PHP 8.2+
+- Laravel 13 on PHP 8.3+
 
 Laravel package discovery is enabled. Manual registration is only needed if you disabled discovery:
 

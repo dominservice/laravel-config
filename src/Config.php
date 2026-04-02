@@ -10,6 +10,7 @@ use Illuminate\Foundation\PackageManifest;
 use Illuminate\Support\Arr;
 use LogicException;
 use Throwable;
+
 class Config
 {
     private $default;
@@ -114,11 +115,22 @@ class Config
      */
     protected function getFreshConfiguration(): array
     {
-        $app = require app()->bootstrapPath('app.php');
+        $bootstrapPath = $this->getBootstrapAppPath();
+
+        if (! is_file($bootstrapPath)) {
+            return app('config')->all();
+        }
+
+        $app = require $bootstrapPath;
         $app->useStoragePath(app()->storagePath());
         $app->make(ConsoleKernelContract::class)->bootstrap();
 
         return $app['config']->all();
+    }
+
+    protected function getBootstrapAppPath(): string
+    {
+        return app()->bootstrapPath('app.php');
     }
 
     protected function getFreshConfigurationForSet(): array
@@ -127,26 +139,24 @@ class Config
         $config = $this->getFreshConfiguration();
 
         // Ręczne ładowanie plików konfiguracyjnych z pakietów
-        $packageManifest = app(PackageManifest::class);
-        $packages = $packageManifest->manifest;
+        foreach ($this->getPackageProviders() as $provider) {
+            try {
+                $reflection = new \ReflectionClass($provider);
+            } catch (Throwable) {
+                continue;
+            }
 
-        foreach ($packages as $package) {
-            if (isset($package['providers'])) {
-                foreach ($package['providers'] as $provider) {
-                    $reflection = new \ReflectionClass($provider);
-                    $packagePath = dirname($reflection->getFileName(), 2); // Zakładamy, że katalog pakietu jest dwa poziomy wyżej
-                    $configPath = $packagePath . '/config';
+            $packagePath = dirname($reflection->getFileName(), 2);
+            $configPath = $packagePath . '/config';
 
-                    if ($filesystem->isDirectory($configPath)) {
-                        foreach ($filesystem->allFiles($configPath) as $file) {
-                            $filename = $file->getFilenameWithoutExtension();
+            if ($filesystem->isDirectory($configPath)) {
+                foreach ($filesystem->allFiles($configPath) as $file) {
+                    $filename = $file->getFilenameWithoutExtension();
 
-                            if (isset($config[$filename])) {
-                                $config[$filename] = array_merge($config[$filename], require $file->getPathname());
-                            } else {
-                                $config[$filename] = require $file->getPathname();
-                            }
-                        }
+                    if (isset($config[$filename])) {
+                        $config[$filename] = array_merge($config[$filename], require $file->getPathname());
+                    } else {
+                        $config[$filename] = require $file->getPathname();
                     }
                 }
             }
@@ -164,6 +174,20 @@ class Config
         }
 
         return $config;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function getPackageProviders(): array
+    {
+        $packageManifest = app(PackageManifest::class);
+
+        if (method_exists($packageManifest, 'providers')) {
+            return $packageManifest->providers();
+        }
+
+        return Arr::flatten(array_column($packageManifest->manifest ?? [], 'providers'));
     }
 
     /**

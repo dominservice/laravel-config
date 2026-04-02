@@ -1,0 +1,75 @@
+name: compatibility
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - run: composer update --no-interaction --prefer-dist --with-all-dependencies
+      - run: composer test
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.1'
+            laravel: '^10.0'
+          - php: '8.2'
+            laravel: '^11.0'
+          - php: '8.2'
+            laravel: '^12.0'
+          - php: '8.3'
+            laravel: '^13.0'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Create Laravel app
+        working-directory: /tmp
+        run: composer create-project laravel/laravel:${{ matrix.laravel }} laravel-config-app --no-interaction --prefer-dist
+
+      - name: Install package under test
+        working-directory: /tmp/laravel-config-app
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+          php -r '$env = file_get_contents(".env"); $env = preg_replace("/^DB_CONNECTION=.*/m", "DB_CONNECTION=sqlite", $env); $env = preg_replace("/^DB_DATABASE=.*/m", "DB_DATABASE=".str_replace("\\", "\\\\", getcwd()."/database/database.sqlite"), $env); file_put_contents(".env", $env);'
+          composer config repositories.local path "$GITHUB_WORKSPACE"
+          composer require dominservice/laravel-config:@dev --no-interaction --prefer-dist --with-all-dependencies
+          php artisan key:generate --ansi
+
+      - name: Publish package assets
+        working-directory: /tmp/laravel-config-app
+        run: |
+          php artisan vendor:publish --provider="Dominservice\\LaravelConfig\\ServiceProvider" --tag=optimize-migrations --ansi
+          if [ -f .env.backup ]; then cp .env.backup .env; fi
+
+      - name: Run smoke test
+        working-directory: /tmp/laravel-config-app
+        run: |
+          cp "$GITHUB_WORKSPACE/.github/ci/LaravelConfigPackageTest.php" tests/Feature/LaravelConfigPackageTest.php
+          php artisan migrate --ansi
+          php artisan test tests/Feature/LaravelConfigPackageTest.php --ansi
