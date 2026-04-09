@@ -69,6 +69,21 @@ use Dominservice\LaravelConfig\Config;
 (new Config())->buildCache();
 ```
 
+### Runtime refresh after buildCache()
+
+After `buildCache()` the package immediately reloads the freshly written cached config file into the
+current Laravel runtime. This is meant for flows where settings are saved from an admin panel and the
+same request should already render with updated `config()` values.
+
+The refresh works in three steps:
+
+- clear PHP stat cache for the cached config file
+- invalidate OPcache for that file when available
+- replace the in-memory Laravel config repository with a fresh `Illuminate\\Config\\Repository`
+
+This matches Laravel's configuration bootstrap more closely than mutating the existing repository with
+`app('config')->set([...])`, which can leave mixed old/new runtime state in the same request.
+
 ### Database-backed config values
 
 The `settings` table stores only the values that differ from defaults. Types are auto-cast based on the

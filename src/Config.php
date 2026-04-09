@@ -4,9 +4,11 @@ namespace Dominservice\LaravelConfig;
 
 use Dominservice\LaravelConfig\Helpers\ArrayHelper;
 use Dominservice\LaravelConfig\Models\Setting;
+use Illuminate\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Console\Kernel as ConsoleKernelContract;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\PackageManifest;
+use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Arr;
 use LogicException;
 use Throwable;
@@ -232,7 +234,9 @@ class Config
 
         try {
             if ($filesystem->exists($configPath)) {
-                app('config')->set($config);
+                $this->replaceRuntimeConfiguration(
+                    $this->loadFreshCachedConfiguration($configPath, $config)
+                );
             }
 
         } catch (Throwable $e) {
@@ -240,6 +244,34 @@ class Config
 
             throw new LogicException('Your configuration files are not serializable.', 0, $e);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $fallback
+     * @return array<string, mixed>
+     */
+    protected function loadFreshCachedConfiguration(string $configPath, array $fallback): array
+    {
+        clearstatcache(true, $configPath);
+
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($configPath, true);
+        }
+
+        $loaded = require $configPath;
+
+        return is_array($loaded) ? $loaded : $fallback;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    protected function replaceRuntimeConfiguration(array $config): void
+    {
+        app()->forgetInstance('config');
+        Facade::clearResolvedInstance('config');
+
+        app()->instance('config', new ConfigRepository($config));
     }
 
     /**
