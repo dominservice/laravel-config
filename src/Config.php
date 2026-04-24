@@ -17,6 +17,7 @@ class Config
 {
     private $default;
     private $config = [];
+    private array $dbOverrides = [];
     private bool $initializedDB = false;
 
     /**
@@ -67,9 +68,11 @@ class Config
             if ($defaultCastValue !== $castValue) {
                 \DB::table('settings')->upsert(['key' => $param, 'value' => $castValue], ['key'], ['value']);
                 data_set($config, $param, $value);
+                $this->dbOverrides[$param] = $value;
             } else {
                 Setting::where('key', $param)->delete();
                 Arr::forget($config, $param);
+                unset($this->dbOverrides[$param]);
             }
         }
 
@@ -203,10 +206,13 @@ class Config
                     $this->config = [];
                 }
 
+                $this->dbOverrides = [];
+
                 foreach (Setting::orderBy('key', 'asc')->get() as $v) {
                     $type = ArrayHelper::valueTypeOf($v->value);
                     $v->value = ArrayHelper::valueCastTo($v->value, $type);
                     data_set($this->config, $v->key, $v->value);
+                    $this->dbOverrides[$v->key] = $v->value;
                 }
 
                 $this->initializedDB = true;
@@ -224,7 +230,12 @@ class Config
         $this->initConfigDB(true);
         $this->getDefault();
         $this->getCustomConfigFiles();
-        $config = Arr::recursiveMerge($this->default, $this->config);
+        $config = $this->default;
+
+        foreach ($this->dbOverrides as $key => $value) {
+            data_set($config, $key, $value);
+        }
+
         $configPath = app()->getCachedConfigPath();
         $filesystem = new Filesystem;
         $filesystem->delete($configPath);
