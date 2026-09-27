@@ -3,13 +3,13 @@
 use Illuminate\Support\Env;
 
 if (! function_exists('optimize_config')) {
-    /**
-     * @param $key
-     * @param $default
-     * @return mixed
-     */
-    function optimize_config($key, $default = null): mixed
+    function optimize_config(string $key, mixed $default = null): mixed
     {
+        $environmentValue = Env::get($key);
+        if (app()->environment('testing') && $environmentValue !== null) {
+            return $environmentValue;
+        }
+
         $mainConfig = file_exists(base_path('optimize_config.php')) ? include (base_path('optimize_config.php')) : [];
 
         if (isset($mainConfig[$key])) {
