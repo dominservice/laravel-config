@@ -238,8 +238,7 @@ class Config
 
         $configPath = app()->getCachedConfigPath();
         $filesystem = new Filesystem;
-        $filesystem->delete($configPath);
-        $filesystem->put(
+        $filesystem->replace(
             $configPath, '<?php return ' . var_export($config, true) . ';' . PHP_EOL
         );
 

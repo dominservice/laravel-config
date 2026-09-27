@@ -55,4 +55,28 @@ class ConfigCompatibilityTest extends TestCase
             'Dominservice\\LaravelConfig\\ServiceProvider',
         ], $config->packageProviders());
     }
+
+    public function test_it_replaces_an_existing_configuration_cache_with_valid_php(): void
+    {
+        config()->set('atomic-regression.marker', 'Rebuilt application');
+
+        $cachedConfigPath = app()->getCachedConfigPath();
+        file_put_contents($cachedConfigPath, "<?php return ['stale' => true];\n");
+
+        $config = new class extends Config
+        {
+            protected function getBootstrapAppPath(): string
+            {
+                return base_path('bootstrap/non-existent-app.php');
+            }
+        };
+
+        $config->buildCache();
+
+        $cachedConfiguration = require $cachedConfigPath;
+
+        $this->assertIsArray($cachedConfiguration);
+        $this->assertSame('Rebuilt application', data_get($cachedConfiguration, 'atomic-regression.marker'));
+        $this->assertArrayNotHasKey('stale', $cachedConfiguration);
+    }
 }
