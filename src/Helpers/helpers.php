@@ -6,7 +6,7 @@ if (! function_exists('optimize_config')) {
     function optimize_config(string $key, mixed $default = null): mixed
     {
         $environmentValue = Env::get($key);
-        if (app()->environment('testing') && $environmentValue !== null) {
+        if (Env::get('APP_ENV') === 'testing' && $environmentValue !== null) {
             return $environmentValue;
         }
 

@@ -33,13 +33,20 @@ return [
 PHP);
 
         $environment = Env::getRepository();
+        $originalEnvironment = Env::get('APP_ENV');
         $originalValue = Env::get('TEST_OPTIMIZE_VALUE');
+        $environment->set('APP_ENV', 'testing');
         $environment->set('TEST_OPTIMIZE_VALUE', 'phpunit-value');
 
         try {
-            $this->assertSame('testing', app()->environment());
             $this->assertSame('phpunit-value', optimize_config('TEST_OPTIMIZE_VALUE'));
         } finally {
+            if ($originalEnvironment === null) {
+                $environment->clear('APP_ENV');
+            } else {
+                $environment->set('APP_ENV', (string) $originalEnvironment);
+            }
+
             if ($originalValue === null) {
                 $environment->clear('TEST_OPTIMIZE_VALUE');
             } else {
